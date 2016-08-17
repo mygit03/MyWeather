@@ -38,6 +38,7 @@ public:
     void getHistoryWeatherInfo(QJsonObject data);                   //获取历史天气信息
     void getTodayWeatherInfo(QJsonObject data);                     //获取当前天气信息
     void getForecastWeatherInfo(QJsonObject data);                  //获取未来天气信息
+    void getOtherInfo(QJsonObject data);                            //获取其他天气信息
 
 private slots:
     void replyFinished(QNetworkReply *reply);
@@ -49,8 +50,6 @@ private:
 //    QStringList cityList;
 
     QNetworkAccessManager *manage;
-
-    int cols;                                       //列数
 };
 
 #endif // WIDGET_H

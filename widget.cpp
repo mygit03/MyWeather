@@ -51,6 +51,22 @@ void Widget::init()
     ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
+    ui->tableWidget_history->setColumnWidth(0, 109);
+    ui->tableWidget_history->setColumnWidth(2, 80);
+    ui->tableWidget_history->setColumnWidth(3, 80);
+    ui->tableWidget_history->setColumnWidth(4, 80);
+    ui->tableWidget_history->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tableWidget_history->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->tableWidget_history->setColumnHidden(2, true);
+
+    ui->tableWidget_forecast->setColumnWidth(0, 109);
+    ui->tableWidget_forecast->setColumnWidth(2, 80);
+    ui->tableWidget_forecast->setColumnWidth(3, 80);
+    ui->tableWidget_forecast->setColumnWidth(4, 80);
+    ui->tableWidget_forecast->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tableWidget_forecast->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->tableWidget_forecast->setColumnHidden(2, true);
+
     setTableHorizontalHeader();         //设置表头
 
     //设置选中行的背景色
@@ -65,6 +81,8 @@ void Widget::setTableHorizontalHeader()
     QStringList hList;
     hList << "日期" << "天气" << "当前温度" << "最高温度" << "最低温度" << "风力" << "风向"/* << "空气质量指数"*/;
     ui->tableWidget->setHorizontalHeaderLabels(hList);
+    ui->tableWidget_history->setHorizontalHeaderLabels(hList);
+    ui->tableWidget_forecast->setHorizontalHeaderLabels(hList);
 }
 
 void Widget::operateSql()
@@ -111,6 +129,7 @@ void Widget::setNetworkRequest(QNetworkRequest &request, QString cityName, QStri
 
 void Widget::getHistoryWeatherInfo(QJsonObject data)
 {
+    int cols = ui->tableWidget_history->columnCount();
     QJsonArray historyArray = data.value("retData").toObject().value("history").toArray();
     int size = historyArray.size();
     qDebug() << "size;" << size;
@@ -136,18 +155,19 @@ void Widget::getHistoryWeatherInfo(QJsonObject data)
                         << historyInfo.hightemp << historyInfo.lowtemp << historyInfo.fengli << historyInfo.fengxiang
                         << historyInfo.aqi;
 
-        int rows = ui->tableWidget->rowCount();
-        ui->tableWidget->setRowCount(rows + 1);
+        int rows = ui->tableWidget_history->rowCount();
+        ui->tableWidget_history->setRowCount(rows + 1);
         for(int i = 0; i < cols; i++){
             QTableWidgetItem *item = new QTableWidgetItem(historyInfoList.at(i));
             item->setTextAlignment(Qt::AlignCenter);
-            ui->tableWidget->setItem(rows, i, item);
+            ui->tableWidget_history->setItem(rows, i, item);
         }
     }
 }
 
 void Widget::getTodayWeatherInfo(QJsonObject data)
 {
+    int cols = ui->tableWidget->columnCount();
     QJsonObject today = data.value("retData").toObject().value("today").toObject();
     WeatherInfo todayInfo;
     todayInfo.date = today.value("date").toString();
@@ -182,6 +202,7 @@ void Widget::getTodayWeatherInfo(QJsonObject data)
 
 void Widget::getForecastWeatherInfo(QJsonObject data)
 {
+    int cols = ui->tableWidget_forecast->columnCount();
     QJsonArray forecastArray = data.value("retData").toObject().value("forecast").toArray();
     int size = forecastArray.size();
     qDebug() << "size;" << size;
@@ -207,21 +228,69 @@ void Widget::getForecastWeatherInfo(QJsonObject data)
                          << forecastInfo.hightemp << forecastInfo.lowtemp << forecastInfo.fengli << forecastInfo.fengxiang
                          << forecastInfo.aqi;
 
-        int rows = ui->tableWidget->rowCount();
-        ui->tableWidget->setRowCount(rows + 1);
+        int rows = ui->tableWidget_forecast->rowCount();
+        ui->tableWidget_forecast->setRowCount(rows + 1);
         for(int i = 0; i < cols; i++){
             QTableWidgetItem *item = new QTableWidgetItem(forecastInfoList.at(i));
             item->setTextAlignment(Qt::AlignCenter);
-            ui->tableWidget->setItem(rows, i, item);
+            ui->tableWidget_forecast->setItem(rows, i, item);
         }
     }
+}
+
+void Widget::getOtherInfo(QJsonObject data)
+{
+    QJsonArray otherArray = data.value("retData").toObject().value("today").toObject()
+            .value("index").toArray();
+
+    QString index, details;
+    QJsonObject otherInfo = otherArray.at(0).toObject();
+    index = otherInfo.value("index").toString();
+    details = otherInfo.value("details").toString();
+    ui->label1_1->setText(index);
+    ui->label1_2->setText(details);
+    qDebug() << "details:" << details;
+
+    otherInfo = otherArray.at(1).toObject();
+    index = otherInfo.value("index").toString();
+    details = otherInfo.value("details").toString();
+    ui->label2_1->setText(index);
+    ui->label2_2->setText(details);
+    qDebug() << "details:" << details;
+
+    otherInfo = otherArray.at(2).toObject();
+    index = otherInfo.value("index").toString();
+    details = otherInfo.value("details").toString();
+    ui->label3_1->setText(index);
+    ui->label3_2->setText(details);
+    qDebug() << "details:" << details;
+
+    otherInfo = otherArray.at(3).toObject();
+    index = otherInfo.value("index").toString();
+    details = otherInfo.value("details").toString();
+    ui->label4_1->setText(index);
+    ui->label4_2->setText(details);
+    qDebug() << "details:" << details;
+
+    otherInfo = otherArray.at(4).toObject();
+    index = otherInfo.value("index").toString();
+    details = otherInfo.value("details").toString();
+    ui->label5_1->setText(index);
+    ui->label5_2->setText(details);
+    qDebug() << "details:" << details;
+
+    otherInfo = otherArray.at(5).toObject();
+    index = otherInfo.value("index").toString();
+    details = otherInfo.value("details").toString();
+    ui->label6_1->setText(index);
+    ui->label6_2->setText(details);
+    qDebug() << "details:" << details;
 }
 
 void Widget::replyFinished(QNetworkReply *reply)
 {
     ui->tableWidget->clear();
     setTableHorizontalHeader();     //设置表头
-    cols = ui->tableWidget->columnCount();
     QJsonObject data = QJsonDocument::fromJson(reply->readAll()).object();
 
     //获取历史天气信息
@@ -232,4 +301,7 @@ void Widget::replyFinished(QNetworkReply *reply)
 
     //获取未来天气信息
     getForecastWeatherInfo(data);
+
+    //获取其他天气信息
+    getOtherInfo(data);
 }
