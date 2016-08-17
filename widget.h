@@ -2,9 +2,9 @@
 #define WIDGET_H
 
 #include <QWidget>
-#include <QScriptEngine>
-#include <QScriptValue>
 
+class QNetworkAccessManager;
+class QNetworkRequest;
 class QNetworkReply;
 
 struct WeatherInfo{
@@ -14,9 +14,9 @@ struct WeatherInfo{
     QString curTemp;
     QString hightemp;
     QString lowtemp;
-    QString aqi;
-    QString fengxiang;
     QString fengli;
+    QString fengxiang;
+    QString aqi;
 };
 
 namespace Ui {
@@ -34,6 +34,10 @@ public:
     void init();
     void setTableHorizontalHeader();
     void operateSql();
+    void setNetworkRequest(QNetworkRequest &request, QString cityName, QString cityId);//设置网络请求
+    void getHistoryWeatherInfo(QJsonObject data);                   //获取历史天气信息
+    void getTodayWeatherInfo(QJsonObject data);                     //获取当前天气信息
+    void getForecastWeatherInfo(QJsonObject data);                  //获取未来天气信息
 
 private slots:
     void replyFinished(QNetworkReply *reply);
@@ -42,9 +46,11 @@ private:
     Ui::Widget *ui;
 
     QStringList provinceList;
-    QStringList cityList;
-//    QScriptEngine engine;
-//    QScriptValue weatherValue;
+//    QStringList cityList;
+
+    QNetworkAccessManager *manage;
+
+    int cols;                                       //列数
 };
 
 #endif // WIDGET_H

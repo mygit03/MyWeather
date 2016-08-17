@@ -4,9 +4,6 @@
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
-#include <QTextCodec>
-#include <QFile>
-#include <QMessageBox>
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -14,6 +11,8 @@
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
+
+QNetworkRequest network_request;
 
 Widget::Widget(QWidget *parent) :
     QWidget(parent),
@@ -23,18 +22,12 @@ Widget::Widget(QWidget *parent) :
 
     init();
 
-    QNetworkAccessManager *manage = new QNetworkAccessManager(this);
-    QNetworkRequest network_request;
-    /*设置发送数据*/
-#if 0
-    network_request.setUrl(QUrl(QString("http://api.map.baidu.com/location/ip?ak=%1&coor=bd09ll").arg("54GzQbyspseUfRUbvDdVMKQW")));
-#else
+    manage = new QNetworkAccessManager(this);
     QString cityName = "朝阳";
     QString cityId = "101010300";
-    network_request.setUrl(QUrl(QString("http://apis.baidu.com/apistore/weatherservice/recentweathers?cityname=%1&cityid=%2")
-                                .arg(cityName).arg(cityId)));
-    network_request.setRawHeader("apikey", "b446bb51d329b1098b008568231a772b");
-#endif
+
+    //设置网络请求
+    setNetworkRequest(network_request, cityName, cityId);
 
     connect(manage,SIGNAL(finished(QNetworkReply *)),this,SLOT(replyFinished(QNetworkReply*)));
     /*发送get网络请求*/
@@ -64,7 +57,7 @@ void Widget::init()
     QString styleSheet = "QTableView::item:selected{color:white;background:rgb(34, 175, 75);}";
     ui->tableWidget->setStyleSheet(styleSheet);
 
-    operateSql();
+//    operateSql();     //暂时获取数据库
 }
 
 void Widget::setTableHorizontalHeader()
@@ -104,35 +97,20 @@ void Widget::operateSql()
     qDebug()<<"database closed!";
 }
 
-void Widget::replyFinished(QNetworkReply *reply)
+void Widget::setNetworkRequest(QNetworkRequest &request, QString cityName, QString cityId)
 {
+    /*设置发送数据*/
 #if 0
-    /*对数据进行编码*/
-    QTextCodec *codec = QTextCodec::codecForName("utf8");
-    //使用utf8编码，这样才可以显示中文
-    QString all = codec->toUnicode(reply->readAll());
-    reply->deleteLater();   //最后要释放reply对象
-
-    QString fileName = QApplication::applicationDirPath();
-    fileName.append("/reply.txt");
-    QFile file(fileName);
-    if(file.open(QIODevice::WriteOnly | QIODevice::Text)){
-        QTextStream in(&file);
-        in.setCodec(codec);
-        in << all;
-        file.close();
-        QMessageBox::information(this, tr("提示"), tr("保存成功!"));
-    }
+    request.setUrl(QUrl(QString("http://api.map.baidu.com/location/ip?ak=%1&coor=bd09ll").arg("54GzQbyspseUfRUbvDdVMKQW")));
 #else
-//    QScriptValue json = engine.evaluate("("+reply->readAll()+")");
-//    weatherValue = json.property("weatherinfo");
-//    QString str = weatherValue.property("");
+    request.setUrl(QUrl(QString("http://apis.baidu.com/apistore/weatherservice/recentweathers?cityname=%1&cityid=%2")
+                                .arg(cityName).arg(cityId)));
+    request.setRawHeader("apikey", "b446bb51d329b1098b008568231a772b");
+#endif
+}
 
-    ui->tableWidget->clear();
-    setTableHorizontalHeader();     //设置表头
-    int cols = ui->tableWidget->columnCount();
-    QJsonObject data = QJsonDocument::fromJson(reply->readAll()).object();
-
+void Widget::getHistoryWeatherInfo(QJsonObject data)
+{
     QJsonArray historyArray = data.value("retData").toObject().value("history").toArray();
     int size = historyArray.size();
     qDebug() << "size;" << size;
@@ -153,7 +131,6 @@ void Widget::replyFinished(QNetworkReply *reply)
                  << historyInfo.hightemp << historyInfo.lowtemp << historyInfo.fengli << historyInfo.fengxiang
                  << historyInfo.aqi;
 
-
         QStringList historyInfoList;
         historyInfoList << historyInfo.date + historyInfo.week << historyInfo.type << historyInfo.curTemp
                         << historyInfo.hightemp << historyInfo.lowtemp << historyInfo.fengli << historyInfo.fengxiang
@@ -167,7 +144,10 @@ void Widget::replyFinished(QNetworkReply *reply)
             ui->tableWidget->setItem(rows, i, item);
         }
     }
+}
 
+void Widget::getTodayWeatherInfo(QJsonObject data)
+{
     QJsonObject today = data.value("retData").toObject().value("today").toObject();
     WeatherInfo todayInfo;
     todayInfo.date = today.value("date").toString();
@@ -185,8 +165,8 @@ void Widget::replyFinished(QNetworkReply *reply)
 
     QStringList todayInfoList;
     todayInfoList << todayInfo.date + todayInfo.week << todayInfo.type << todayInfo.curTemp
-             << todayInfo.hightemp << todayInfo.lowtemp << todayInfo.fengli << todayInfo.fengxiang
-             << todayInfo.aqi;
+                  << todayInfo.hightemp << todayInfo.lowtemp << todayInfo.fengli << todayInfo.fengxiang
+                  << todayInfo.aqi;
 
     int rows = ui->tableWidget->rowCount();
     ui->tableWidget->setRowCount(rows + 1);
@@ -198,9 +178,12 @@ void Widget::replyFinished(QNetworkReply *reply)
 //        item->setBackgroundColor(QColor(34, 175, 75));
         ui->tableWidget->setItem(rows, i, item);
     }
+}
 
+void Widget::getForecastWeatherInfo(QJsonObject data)
+{
     QJsonArray forecastArray = data.value("retData").toObject().value("forecast").toArray();
-    size = forecastArray.size();
+    int size = forecastArray.size();
     qDebug() << "size;" << size;
     for(int i=0; i < size; i++)
     {
@@ -219,11 +202,10 @@ void Widget::replyFinished(QNetworkReply *reply)
                  << forecastInfo.hightemp << forecastInfo.lowtemp << forecastInfo.fengli << forecastInfo.fengxiang
                  << forecastInfo.aqi;
 
-
         QStringList forecastInfoList;
         forecastInfoList << forecastInfo.date + forecastInfo.week << forecastInfo.type << forecastInfo.curTemp
-                 << forecastInfo.hightemp << forecastInfo.lowtemp << forecastInfo.fengli << forecastInfo.fengxiang
-                 << forecastInfo.aqi;
+                         << forecastInfo.hightemp << forecastInfo.lowtemp << forecastInfo.fengli << forecastInfo.fengxiang
+                         << forecastInfo.aqi;
 
         int rows = ui->tableWidget->rowCount();
         ui->tableWidget->setRowCount(rows + 1);
@@ -233,5 +215,21 @@ void Widget::replyFinished(QNetworkReply *reply)
             ui->tableWidget->setItem(rows, i, item);
         }
     }
-#endif
+}
+
+void Widget::replyFinished(QNetworkReply *reply)
+{
+    ui->tableWidget->clear();
+    setTableHorizontalHeader();     //设置表头
+    cols = ui->tableWidget->columnCount();
+    QJsonObject data = QJsonDocument::fromJson(reply->readAll()).object();
+
+    //获取历史天气信息
+    getHistoryWeatherInfo(data);
+
+    //获取当前天气信息
+    getTodayWeatherInfo(data);
+
+    //获取未来天气信息
+    getForecastWeatherInfo(data);
 }
