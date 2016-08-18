@@ -23,11 +23,11 @@ Widget::Widget(QWidget *parent) :
     init();
 
     manage = new QNetworkAccessManager(this);
-    QString cityName = "朝阳";
-    QString cityId = "101010300";
+    QString cityName = ui->cBox_city->currentText();
+    qDebug() << "init cityName:" << cityName;
 
     //设置网络请求
-    setNetworkRequest(network_request, cityName, cityId);
+    setNetworkRequest(network_request, cityName);
 
     connect(manage,SIGNAL(finished(QNetworkReply *)),this,SLOT(replyFinished(QNetworkReply*)));
     /*发送get网络请求*/
@@ -73,7 +73,12 @@ void Widget::init()
     QString styleSheet = "QTableView::item:selected{color:white;background:rgb(34, 175, 75);}";
     ui->tableWidget->setStyleSheet(styleSheet);
 
-//    operateSql();     //暂时获取数据库
+    getProvinceList();
+    QString curPName = ui->cBox_province->currentText();
+    getCityList(curPName);
+    QString curCName = ui->cBox_city->currentText();
+    getAreaList(curCName);
+    qDebug() << "init:" << curPName << curCName;
 }
 
 void Widget::setTableHorizontalHeader()
@@ -85,44 +90,118 @@ void Widget::setTableHorizontalHeader()
     ui->tableWidget_forecast->setHorizontalHeaderLabels(hList);
 }
 
-void Widget::operateSql()
+void Widget::getProvinceList()
 {
     provinceList.clear();
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    QString dbPath = QApplication::applicationDirPath();
-    dbPath.append("/db_weather.db");
-    qDebug() << "path:" << dbPath;
-    db.setDatabaseName(dbPath);
+    db.setDatabaseName("db_weather.db");
     if (!db.open()){
         qDebug() << "database open fail!";
     }else{
         qDebug() << "database open success!";
         QSqlQuery q;
-        //查询数据库中的有哪些表
-        q.exec("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;");
-//        q.exec("select * from provinces");
-
-        int count = q.size();
-        qDebug() << "size:" << count;
-        while (q.next()){
-            for(int i = 0; i < count; i++){
-                provinceList.append(q.value(i).toString());
-                qDebug() << "value:" << i << q.value(i);
-            }
+        //获取省份列表
+        q.exec("select * from provinces");
+        while (q.next())
+        {
+            QString provinceId = q.value(0).toString();
+            QString provinceName = q.value(1).toString();
+            qDebug() << "province:" << provinceId << provinceName;
+            provinceList.append(provinceName);
         }
+        ui->cBox_province->clear();
+        ui->cBox_province->addItems(provinceList);
     }
     db.close();
     qDebug()<<"database closed!";
 }
 
-void Widget::setNetworkRequest(QNetworkRequest &request, QString cityName, QString cityId)
+void Widget::getCityList(QString arg)
+{
+    qDebug() << "getCityList:" << arg;
+    cityList.clear();
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    db.setDatabaseName("db_weather.db");
+    if (!db.open()){
+        qDebug() << "getCityList database open fail!";
+    }
+    else
+    {
+        qDebug() << "getCityList database open success!";
+        QSqlQuery q;
+
+        //获取当前省份id
+        q.exec(tr("select _id from provinces where name='%1'").arg(arg));
+        int pId;
+        while (q.next()){
+            pId = q.value(0).toInt();
+            qDebug() << "pId:"<< pId;
+        }
+
+        //获取当期省份下城市列表
+        q.exec(tr("select * from cities where province_id=%1").arg(pId-1));
+        cityList.clear();
+        while (q.next())
+        {
+            QString provinceId = q.value(1).toString();
+            QString cityName = q.value(2).toString();
+            QString cityNum = q.value(3).toString();
+            qDebug() << "city:"<< provinceId << cityName << cityNum;
+            cityList.append(cityName);
+        }
+        ui->cBox_city->clear();
+        ui->cBox_city->addItems(cityList);
+    }
+    db.close();
+    qDebug()<<"getCityList database closed!";
+}
+
+void Widget::getAreaList(QString arg)
+{
+    qDebug() << "getAreaList:" << arg;
+    areaList.clear();
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    db.setDatabaseName("db_weather.db");
+    if (!db.open()){
+        qDebug() << "getAreaList database open fail!";
+    }
+    else
+    {
+        qDebug() << "getAreaList database open success!";
+        QSqlQuery q;
+
+        //获取当前省份id
+        q.exec(tr("select city_num from cities where name='%1'").arg(arg));
+        int cityNum;
+        while (q.next()){
+            cityNum = q.value(0).toInt();
+            qDebug() << "cityNum:"<< cityNum;
+        }
+
+        //获取当期省份下城市列表
+        q.exec(tr("select * from countries where city_num=%1").arg(cityNum));
+        cityList.clear();
+        while (q.next())
+        {
+            QString areaName = q.value(1).toString();
+            qDebug() << "area:"<< areaName;
+            areaList.append(areaName);
+        }
+        ui->cBox_area->clear();
+        ui->cBox_area->addItems(areaList);
+    }
+    db.close();
+    qDebug()<<"getAreaList database closed!";
+}
+
+void Widget::setNetworkRequest(QNetworkRequest &request, QString cityName)
 {
     /*设置发送数据*/
 #if 0
     request.setUrl(QUrl(QString("http://api.map.baidu.com/location/ip?ak=%1&coor=bd09ll").arg("54GzQbyspseUfRUbvDdVMKQW")));
 #else
-    request.setUrl(QUrl(QString("http://apis.baidu.com/apistore/weatherservice/recentweathers?cityname=%1&cityid=%2")
-                                .arg(cityName).arg(cityId)));
+    request.setUrl(QUrl(QString("http://apis.baidu.com/apistore/weatherservice/recentweathers?cityname=%1")
+                        .arg(cityName)));
     request.setRawHeader("apikey", "b446bb51d329b1098b008568231a772b");
 #endif
 }
@@ -289,8 +368,10 @@ void Widget::getOtherInfo(QJsonObject data)
 
 void Widget::replyFinished(QNetworkReply *reply)
 {
-    ui->tableWidget->clear();
-    setTableHorizontalHeader();     //设置表头
+    ui->tableWidget->setRowCount(0);
+    ui->tableWidget_history->setRowCount(0);
+    ui->tableWidget_forecast->setRowCount(0);
+
     QJsonObject data = QJsonDocument::fromJson(reply->readAll()).object();
 
     //获取历史天气信息
@@ -304,4 +385,25 @@ void Widget::replyFinished(QNetworkReply *reply)
 
     //获取其他天气信息
     getOtherInfo(data);
+}
+
+void Widget::on_btn_refresh_clicked()
+{
+    QString cityName = ui->cBox_city->currentText();
+    setNetworkRequest(network_request, cityName);
+    manage->get(network_request);
+}
+
+void Widget::on_cBox_province_activated(const QString &arg1)
+{
+    getCityList(arg1);
+    QString curCName = ui->cBox_city->currentText();
+    getAreaList(curCName);
+    qDebug() << "cBox_province:" << arg1 << curCName;
+}
+
+void Widget::on_cBox_city_activated(const QString &arg1)
+{
+    getAreaList(arg1);
+    qDebug() << "cBox_city:" << arg1;
 }

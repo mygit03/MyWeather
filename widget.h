@@ -33,8 +33,12 @@ public:
 
     void init();
     void setTableHorizontalHeader();
-    void operateSql();
-    void setNetworkRequest(QNetworkRequest &request, QString cityName, QString cityId);//设置网络请求
+
+    void getProvinceList();                 //获取省份列表
+    void getCityList(QString arg);                     //获取城市列表
+    void getAreaList(QString arg);                     //获取区域列表
+
+    void setNetworkRequest(QNetworkRequest &request, QString cityName);//设置网络请求
     void getHistoryWeatherInfo(QJsonObject data);                   //获取历史天气信息
     void getTodayWeatherInfo(QJsonObject data);                     //获取当前天气信息
     void getForecastWeatherInfo(QJsonObject data);                  //获取未来天气信息
@@ -43,11 +47,18 @@ public:
 private slots:
     void replyFinished(QNetworkReply *reply);
 
+    void on_btn_refresh_clicked();
+
+    void on_cBox_province_activated(const QString &arg1);
+
+    void on_cBox_city_activated(const QString &arg1);
+
 private:
     Ui::Widget *ui;
 
     QStringList provinceList;
-//    QStringList cityList;
+    QStringList cityList;
+    QStringList areaList;
 
     QNetworkAccessManager *manage;
 };
