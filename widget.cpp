@@ -44,28 +44,23 @@ void Widget::init()
     QString dateTime = QDateTime::currentDateTime().toString("yyyy.MM.dd ddd");
     ui->label_dateTime->setText(dateTime);
 
-    ui->tableWidget->setColumnWidth(0, 109);
-    ui->tableWidget->setColumnWidth(2, 80);
-    ui->tableWidget->setColumnWidth(3, 80);
-    ui->tableWidget->setColumnWidth(4, 80);
+    ui->tableWidget->setColumnWidth(0, 130);
+    ui->tableWidget->setColumnWidth(2, 90);
+    ui->tableWidget->setColumnWidth(3, 90);
+    ui->tableWidget->setColumnWidth(4, 90);
     ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    ui->tableWidget_history->setColumnWidth(0, 109);
-    ui->tableWidget_history->setColumnWidth(2, 80);
-    ui->tableWidget_history->setColumnWidth(3, 80);
-    ui->tableWidget_history->setColumnWidth(4, 80);
+    ui->tableWidget_history->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);        //自适应
     ui->tableWidget_history->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->tableWidget_history->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tableWidget_history->setColumnHidden(2, true);
 
-    ui->tableWidget_forecast->setColumnWidth(0, 109);
-    ui->tableWidget_forecast->setColumnWidth(2, 80);
-    ui->tableWidget_forecast->setColumnWidth(3, 80);
-    ui->tableWidget_forecast->setColumnWidth(4, 80);
+    ui->tableWidget_forecast->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);        //自适应
     ui->tableWidget_forecast->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->tableWidget_forecast->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tableWidget_forecast->setColumnHidden(2, true);
+    ui->tableWidget_forecast->setColumnHidden(7, true);
 
     setTableHorizontalHeader();         //设置表头
 
@@ -84,7 +79,7 @@ void Widget::init()
 void Widget::setTableHorizontalHeader()
 {
     QStringList hList;
-    hList << "日期" << "天气" << "当前温度" << "最高温度" << "最低温度" << "风力" << "风向"/* << "空气质量指数"*/;
+    hList << "日期" << "天气" << "当前温度" << "最高温度" << "最低温度" << "风力" << "风向" << "空气质量指数";
     ui->tableWidget->setHorizontalHeaderLabels(hList);
     ui->tableWidget_history->setHorizontalHeaderLabels(hList);
     ui->tableWidget_forecast->setHorizontalHeaderLabels(hList);
@@ -225,6 +220,7 @@ void Widget::getHistoryWeatherInfo(QJsonObject data)
         historyInfo.fengli = history.value("fengli").toString();
         historyInfo.fengxiang = history.value("fengxiang").toString();
         historyInfo.aqi = history.value("aqi").toString();
+        setAqi(historyInfo.aqi);          //设置空气质量指数显示
         qDebug() << "ddd" << historyInfo.date + historyInfo.week << historyInfo.type << historyInfo.curTemp
                  << historyInfo.hightemp << historyInfo.lowtemp << historyInfo.fengli << historyInfo.fengxiang
                  << historyInfo.aqi;
@@ -258,6 +254,7 @@ void Widget::getTodayWeatherInfo(QJsonObject data)
     todayInfo.fengli = today.value("fengli").toString();
     todayInfo.fengxiang = today.value("fengxiang").toString();
     todayInfo.aqi = today.value("aqi").toString();
+    setAqi(todayInfo.aqi);          //设置空气质量指数显示
     qDebug() << "ddd" << todayInfo.date + todayInfo.week << todayInfo.type << todayInfo.curTemp
              << todayInfo.hightemp << todayInfo.lowtemp << todayInfo.fengli << todayInfo.fengxiang
              << todayInfo.aqi;
@@ -366,6 +363,31 @@ void Widget::getOtherInfo(QJsonObject data)
     qDebug() << "details:" << details;
 }
 
+void Widget::setAqi(QString &strAqi)
+{
+    int aqi = strAqi.toInt();
+    qDebug() << "aqi:" << aqi;
+    if(aqi >= 0 && aqi <= 50){
+        strAqi += " (" + tr("优") + ")";
+        qDebug() << "优";
+    }else if(aqi >= 51 && aqi <= 100){
+        strAqi += " (" + tr("良") + ")";
+        qDebug() << "良";
+    }else if(aqi >= 101 && aqi <= 150){
+        strAqi += " (" + tr("轻度污染") + ")";
+        qDebug() << "轻度污染";
+    }else if(aqi >= 151 && aqi <= 200){
+        strAqi += " (" + tr("中度污染") + ")";
+        qDebug() << "中度污染";
+    }else if(aqi >= 201 && aqi <= 300){
+        strAqi += " (" + tr("重度污染") + ")";
+        qDebug() << "重度污染";
+    }else if(aqi > 300){
+        strAqi += " (" + tr("严重污染") + ")";
+        qDebug() << "严重污染";
+    }
+}
+
 void Widget::replyFinished(QNetworkReply *reply)
 {
     ui->tableWidget->setRowCount(0);
@@ -377,7 +399,7 @@ void Widget::replyFinished(QNetworkReply *reply)
     //获取历史天气信息
     getHistoryWeatherInfo(data);
 
-    //获取当前天气信息
+    //获取当日天气信息
     getTodayWeatherInfo(data);
 
     //获取未来天气信息

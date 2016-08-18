@@ -34,15 +34,16 @@ public:
     void init();
     void setTableHorizontalHeader();
 
-    void getProvinceList();                 //获取省份列表
-    void getCityList(QString arg);                     //获取城市列表
-    void getAreaList(QString arg);                     //获取区域列表
+    void getProvinceList();                     //获取省份列表
+    void getCityList(QString arg);              //获取城市列表
+    void getAreaList(QString arg);              //获取区域列表
 
     void setNetworkRequest(QNetworkRequest &request, QString cityName);//设置网络请求
     void getHistoryWeatherInfo(QJsonObject data);                   //获取历史天气信息
-    void getTodayWeatherInfo(QJsonObject data);                     //获取当前天气信息
+    void getTodayWeatherInfo(QJsonObject data);                     //获取当日天气信息
     void getForecastWeatherInfo(QJsonObject data);                  //获取未来天气信息
     void getOtherInfo(QJsonObject data);                            //获取其他天气信息
+    void setAqi(QString &strAqi);                                   //设置空气质量指数显示
 
 private slots:
     void replyFinished(QNetworkReply *reply);
@@ -56,9 +57,9 @@ private slots:
 private:
     Ui::Widget *ui;
 
-    QStringList provinceList;
-    QStringList cityList;
-    QStringList areaList;
+    QStringList provinceList;               //省份列表
+    QStringList cityList;                   //城市列表
+    QStringList areaList;                   //区域列表
 
     QNetworkAccessManager *manage;
 };
