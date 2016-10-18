@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui network script sql
+QT       += core gui network script sql charts
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 

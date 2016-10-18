@@ -12,6 +12,14 @@
 #include <QSqlError>
 #include <QSqlQuery>
 
+//#include <QChartView>
+//#include <QBarSeries>
+//#include <QBarSet>
+//#include <QLegend>
+//#include <QBarCategoryAxis>
+
+//QT_CHARTS_USE_NAMESPACE
+
 QNetworkRequest network_request;
 
 Widget::Widget(QWidget *parent) :
@@ -41,6 +49,28 @@ Widget::~Widget()
 
 void Widget::init()
 {
+    set0 = new QBarSet("hightemp");
+    set1 = new QBarSet("lowtemp");
+
+    axisX = new QBarCategoryAxis();
+    axisX->setTitleText(QString("时间(日)"));
+    axisY = new QValueAxis;
+    axisY->setRange(-10, 40);
+    axisY->setTitleText("温度(℃)");
+    axisY->setLabelFormat("%i");
+    axisY->setGridLineVisible(true);
+    axisY->setMinorTickCount(4); //设置小刻度线的数目
+    axisY->setTickCount(11);
+
+    series = new QBarSeries();
+    chart = new QChart();
+//    chart->createDefaultAxes();
+    chart->setAxisX(axisX, series);
+    chart->setAxisY(axisY, series);
+
+    chartView = new QChartView(chart);
+    ui->verticalLayout_8->addWidget(chartView);
+
     QString dateTime = QDateTime::currentDateTime().toString("yyyy.MM.dd ddd");
     ui->label_dateTime->setText(dateTime);
 
@@ -278,6 +308,9 @@ void Widget::getTodayWeatherInfo(QJsonObject data)
 
 void Widget::getForecastWeatherInfo(QJsonObject data)
 {
+    QList<QString> maxList, minList;
+    QStringList timeList;
+
     int cols = ui->tableWidget_forecast->columnCount();
     QJsonArray forecastArray = data.value("retData").toObject().value("forecast").toArray();
     int size = forecastArray.size();
@@ -287,11 +320,14 @@ void Widget::getForecastWeatherInfo(QJsonObject data)
         QJsonObject forecast = forecastArray.at(i).toObject();
         WeatherInfo forecastInfo;
         forecastInfo.date = forecast.value("date").toString();
+        timeList.append(forecastInfo.date);
         forecastInfo.week = forecast.value("week").toString();
         forecastInfo.type = forecast.value("type").toString();
         forecastInfo.curTemp = forecast.value("curTemp").toString();
         forecastInfo.hightemp = forecast.value("hightemp").toString();
+        maxList.append(forecastInfo.hightemp);
         forecastInfo.lowtemp = forecast.value("lowtemp").toString();
+        minList.append(forecastInfo.lowtemp);
         forecastInfo.fengli = forecast.value("fengli").toString();
         forecastInfo.fengxiang = forecast.value("fengxiang").toString();
         forecastInfo.aqi = forecast.value("aqi").toString();
@@ -312,6 +348,9 @@ void Widget::getForecastWeatherInfo(QJsonObject data)
             ui->tableWidget_forecast->setItem(rows, i, item);
         }
     }
+
+    qDebug() << "aaaaaa" << maxList << minList;
+    setChart(maxList, minList, timeList);
 }
 
 void Widget::getOtherInfo(QJsonObject data)
@@ -390,6 +429,42 @@ void Widget::setAqi(QString &strAqi)
         strAqi += " (" + tr("严重污染") + ")";
         qDebug() << "严重污染";
     }
+}
+
+void Widget::setChart(QList<QString> maxList, QList<QString> minList, QStringList timeList)
+{
+    qDebug() << maxList << minList;
+
+    for(int i =0; i < maxList.size(); i++){
+        QString tmp1 = maxList.at(i);
+        tmp1.chop(1);
+        int num1 = tmp1.toInt();
+        *set0 << num1;
+
+        QString tmp2 = minList.at(i);
+        tmp2.chop(1);
+        int num2 = tmp2.toInt();
+        *set1 << num2;
+        qDebug() << "sasca" << num1 << num2;
+    }
+
+    series->append(set0);
+    series->append(set1);
+
+    chart->addSeries(series);
+    chart->setTitle("未来四天温度直方图");
+    chart->setAnimationOptions(QChart::SeriesAnimations);
+
+//    QStringList categories;
+//    categories << "Jan" << "Feb" << "Mar" << "Apr";
+    axisX->append(timeList);
+//    axisY->setCategories(QStringList() << "0" << "5" << "10");
+
+    chart->legend()->setVisible(true);
+    chart->legend()->setAlignment(Qt::AlignBottom);
+
+    chartView->setRenderHint(QPainter::Antialiasing);
+//    ui->widget_forecast
 }
 
 void Widget::replyFinished(QNetworkReply *reply)

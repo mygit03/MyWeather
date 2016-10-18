@@ -3,6 +3,15 @@
 
 #include <QWidget>
 
+#include <QChartView>
+#include <QBarSeries>
+#include <QBarSet>
+#include <QLegend>
+#include <QBarCategoryAxis>
+#include <QValueAxis>
+
+QT_CHARTS_USE_NAMESPACE
+
 class QNetworkAccessManager;
 class QNetworkRequest;
 class QNetworkReply;
@@ -44,6 +53,7 @@ public:
     void getForecastWeatherInfo(QJsonObject data);                  //获取未来天气信息
     void getOtherInfo(QJsonObject data);                            //获取其他天气信息
     void setAqi(QString &strAqi);                                   //设置空气质量指数显示
+    void setChart(QList<QString> maxList, QList<QString> minList, QStringList timeList);
 
 private slots:
     void replyFinished(QNetworkReply *reply);
@@ -62,6 +72,14 @@ private:
     QStringList areaList;                   //区域列表
 
     QNetworkAccessManager *manage;
+
+    QBarSet *set0;
+    QBarSet *set1;
+    QBarSeries *series;
+    QChart *chart;
+    QBarCategoryAxis *axisX;
+    QValueAxis *axisY;
+    QChartView *chartView;
 };
 
 #endif // WIDGET_H
